@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: victim-burn
+  namespace: kai-exp
+  labels:
+    kai.scheduler/queue: default-queue
+  annotations:
+    gpu-memory: "512"
+spec:
+  schedulerName: kai-scheduler
+  restartPolicy: Never
+  containers:
+    - name: app
+      image: python:3.12-slim
+      command: ["python", "/code/burn.py", "--role=victim", "--seconds=70"]
+      env:
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: compute,utility
+      volumeMounts:
+        - name: code
+          mountPath: /code
+  volumes:
+    - name: code
+      configMap:
+        name: hog
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hog-burn
+  namespace: kai-exp
+  labels:
+    kai.scheduler/queue: default-queue
+  annotations:
+    gpu-memory: "512"
+spec:
+  schedulerName: kai-scheduler
+  restartPolicy: Never
+  containers:
+    - name: app
+      image: python:3.12-slim
+      command: ["python", "/code/burn.py", "--role=hog", "--start-delay=25", "--seconds=20"]
+      env:
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: compute,utility
+      volumeMounts:
+        - name: code
+          mountPath: /code
+  volumes:
+    - name: code
+      configMap:
+        name: hog

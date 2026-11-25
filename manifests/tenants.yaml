@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kai-exp
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: victim
+  namespace: kai-exp
+  labels:
+    kai.scheduler/queue: default-queue
+  annotations:
+    gpu-memory: "${VICTIM_SHARE_MIB}"
+spec:
+  schedulerName: kai-scheduler
+  restartPolicy: Never
+  containers:
+    - name: app
+      image: python:3.12-slim
+      command: ["python", "/code/hog.py", "--role=victim", "--target-mib=${VICTIM_MIB}", "--probe-mib=${PROBE_MIB}", "--hold-seconds=150"]
+      env:
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: compute,utility
+      volumeMounts:
+        - name: code
+          mountPath: /code
+  volumes:
+    - name: code
+      configMap:
+        name: hog
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hog
+  namespace: kai-exp
+  labels:
+    kai.scheduler/queue: default-queue
+  annotations:
+    gpu-memory: "${HOG_SHARE_MIB}"
+spec:
+  schedulerName: kai-scheduler
+  restartPolicy: Never
+  containers:
+    - name: app
+      image: python:3.12-slim
+      command: ["python", "/code/hog.py", "--role=hog", "--target-mib=${HOG_MIB}", "--hold-seconds=60", "--start-delay=25"]
+      env:
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: compute,utility
+      volumeMounts:
+        - name: code
+          mountPath: /code
+  volumes:
+    - name: code
+      configMap:
+        name: hog
